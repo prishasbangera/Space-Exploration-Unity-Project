@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Source: https://www.youtube.com/watch?v=v_ncMFEoHTg
+/// https://www.youtube.com/watch?v=dlN_ZOVZs9M
 /// </summary>
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
@@ -13,12 +14,15 @@ public class PlayerController : MonoBehaviour
 
     public float lookSensitivity = 0.4f;
     public float maxLookAngle = 85f;
+    public bool lookY = true;
 
     // private
 
+    
     private CharacterController controller;
-    private InputAction moveInput;
-    private InputAction jumpInput;
+    private Rigidbody rb;
+    private Vector2 moveInput;
+    //private InputAction jumpInput;
     private Vector3 moveDirection = Vector3.zero;
     private bool jumpPressed = false;
 
@@ -36,10 +40,11 @@ public class PlayerController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         mainCamera = GetComponentInChildren<Camera>();
+        rb = GetComponentInChildren<Rigidbody>();
 
-        moveInput = InputSystem.actions.FindAction("Move");
-        jumpInput = InputSystem.actions.FindAction("Jump");
-        jumpInput.started += OnJump;
+        //moveInput = InputSystem.actions.FindAction("Move");
+        //jumpInput = InputSystem.actions.FindAction("Jump");
+        //jumpInput.started += OnJump;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -48,10 +53,8 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        if (moveInput != null)
-        {
-            HandleMovement(moveInput.ReadValue<Vector2>());
-        }
+        HandleMovement(moveInput);
+        
 
         // Mouse
         //Vector2 mouseDelta = new Vector2(Mouse.current.delta.x.ReadValue(), Mouse.current.delta.y.ReadValue());
@@ -73,7 +76,7 @@ public class PlayerController : MonoBehaviour
 
         float oldY = moveDirection.y;
         Vector2 newSpeed = new Vector2(moveVector.x * walkSpeed, moveVector.y * walkSpeed);
-        moveDirection = (forward * newSpeed.x) + (right * newSpeed.y);
+        moveDirection = (forward * newSpeed.y) + (right * newSpeed.x);
         moveDirection.y = (jumpPressed && isGrounded) ? jumpForce : oldY;
 
         if (!isGrounded)
@@ -82,20 +85,30 @@ public class PlayerController : MonoBehaviour
         }
 
         controller.Move(moveDirection * Time.deltaTime);
+        //rb.AddForce(moveDirection);
 
 
     }
 
-    private void OnJump(InputAction.CallbackContext context)
+
+    public void OnMove(InputValue value)
     {
-        jumpPressed = true;
+        moveInput = value.Get<Vector2>();
+    }
+
+    public void OnJump(InputValue value)
+    {
+        jumpPressed = value.isPressed;
     }
 
     private void HandleLooking(Vector2 mouseDelta)
     {
-        lookAngle += -mouseDelta.y * lookSensitivity;
-        lookAngle = Mathf.Clamp(lookAngle, -maxLookAngle, maxLookAngle);
-        mainCamera.transform.localRotation = Quaternion.Euler(lookAngle, 0, 0);
+        if (lookY)
+        {
+            lookAngle += -mouseDelta.y * lookSensitivity;
+            lookAngle = Mathf.Clamp(lookAngle, -maxLookAngle, maxLookAngle);
+            mainCamera.transform.localRotation = Quaternion.Euler(lookAngle, 0, 0);
+        }
 
         transform.rotation *= Quaternion.Euler(0, mouseDelta.x * lookSensitivity, 0);
     }
